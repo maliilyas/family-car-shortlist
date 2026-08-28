@@ -752,7 +752,7 @@
     <div class="swatch"><span class="dot" style="background:#9a3412"></span> OVER €28k = above criteria max (kept on list)</div>
     <div class="swatch"><span class="dot" style="background:#0e7490"></span> Users / awards = model-level review score + badges (not per VIN)</div>
     <div class="swatch"><span class="dot" style="background:#7f1d1d"></span> Dark red cell = breaks wishlist criteria (price≤28k / year / auto / kit)</div>
-    <div style="margin-top:8px">Table renders in chunks for speed (~80 rows, more on scroll). Use <strong>Must have</strong> kit filters for Blind / Camera / Sensors / Seat heat / 2–3-zone. Criteria ≤€28k hides over-budget rows. <strong>★</strong> favorites and <strong>☑</strong> dealer-visit checklists sync in this browser (+ favorites API when serve is up).</div>
+    <div style="margin-top:8px">Table renders in chunks for speed (~80 rows, more on scroll). Use <strong>Must have</strong> kit filters for Blind / Camera / Sensors / Seat heat / 2–3-zone. Criteria ≤€28k hides over-budget rows. <strong>★</strong> favorites stick via localStorage + cookie on this device (2 years). <strong>☑</strong> checklists stay in this browser.</div>
   </div>
 </div>
 
@@ -794,6 +794,7 @@
   const MAX_SEL = 3;
   const HIDDEN_KEY = 'shortlistHiddenIds';
   const FAV_KEY = 'shortlistFavoriteIds';
+  const FAV_COOKIE = 'shortlist_favs';
   const CHECK_KEY = 'shortlistChecklists';
   const DEFAULT_API = 'http://127.0.0.1:8765';
 
@@ -851,7 +852,47 @@
     catch (e) { return new Set(); }
   };
   const saveSet = (key, set) => localStorage.setItem(key, JSON.stringify([...set]));
-  let favorites = loadSet(FAV_KEY);
+
+  const readCookie = (name) => {
+    const prefix = name + '=';
+    const hit = document.cookie.split(';').map(s => s.trim()).find(s => s.startsWith(prefix));
+    if (!hit) return null;
+    try { return decodeURIComponent(hit.slice(prefix.length)); }
+    catch (e) { return null; }
+  };
+  const writeCookie = (name, value, days) => {
+    const maxAge = Math.max(1, Math.floor((days || 730) * 86400));
+    const secure = location.protocol === 'https:' ? '; Secure' : '';
+    document.cookie = name + '=' + encodeURIComponent(value) +
+      '; Path=/; Max-Age=' + maxAge + '; SameSite=Lax' + secure;
+  };
+  const loadFavoritesSticky = () => {
+    const fromLs = loadSet(FAV_KEY);
+    let fromCookie = new Set();
+    try {
+      const raw = readCookie(FAV_COOKIE);
+      if (raw) {
+        const arr = JSON.parse(raw);
+        if (Array.isArray(arr)) arr.forEach(id => fromCookie.add(String(id)));
+      }
+    } catch (e) { /* ignore bad cookie */ }
+    const merged = new Set([...fromLs, ...fromCookie]);
+    return merged;
+  };
+  const saveFavoritesSticky = (set) => {
+    const ids = [...set].map(String);
+    try { localStorage.setItem(FAV_KEY, JSON.stringify(ids)); } catch (e) { /* quota */ }
+    // Cookie backup (~4KB limit): keep as many IDs as fit.
+    let payload = JSON.stringify(ids);
+    while (payload.length > 3500 && ids.length) {
+      ids.pop();
+      payload = JSON.stringify(ids);
+    }
+    try { writeCookie(FAV_COOKIE, payload, 730); } catch (e) { /* private mode */ }
+  };
+
+  let favorites = loadFavoritesSticky();
+  saveFavoritesSticky(favorites); // sync cookie ↔ localStorage on boot
   let hidden = loadSet(HIDDEN_KEY);
   const loadCheckMap = () => {
     try { return JSON.parse(localStorage.getItem(CHECK_KEY) || '{}') || {}; }
@@ -1300,7 +1341,7 @@
     const sid = String(id);
     if (favorites.has(sid)) favorites.delete(sid);
     else favorites.add(sid);
-    saveSet(FAV_KEY, favorites);
+    saveFavoritesSticky(favorites);
     updateFavCount();
     const tr = tbody.querySelector('tr[data-id="' + CSS.escape(sid) + '"]');
     if (tr) {
@@ -1507,7 +1548,7 @@
           const j = await r.json();
           if (j && j.ok && Array.isArray(j.ids)) {
             j.ids.forEach(id => favorites.add(String(id)));
-            saveSet(FAV_KEY, favorites);
+            saveFavoritesSticky(favorites);
             updateFavCount();
             await persistFavoritesRemote();
             if (favoritesOnly && favoritesOnly.checked) rebuildView();
