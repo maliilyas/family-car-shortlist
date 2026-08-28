@@ -113,6 +113,9 @@
   th.fav-col, td.fav-cell {
     width: 44px; min-width: 44px; text-align: center; vertical-align: middle;
   }
+  th.check-col, td.check-cell {
+    width: 44px; min-width: 44px; text-align: center; vertical-align: middle;
+  }
   .fav-btn {
     width: 34px; height: 34px; padding: 0; margin: 0;
     display: inline-flex; align-items: center; justify-content: center;
@@ -130,6 +133,29 @@
     color: #fff; box-shadow: 0 2px 10px rgba(245, 158, 11, .35);
   }
   .fav-btn.is-on:hover { background: linear-gradient(145deg, #f59e0b, #d97706); color: #fff; }
+  .check-btn {
+    width: 34px; height: 34px; padding: 0; margin: 0; position: relative;
+    display: inline-flex; align-items: center; justify-content: center;
+    border: 1px solid var(--line); background: #f8fafc; color: #64748b;
+    border-radius: 10px; cursor: pointer; font-size: 14px; font-weight: 800;
+    transition: background .15s, color .15s, border-color .15s, transform .12s, box-shadow .15s;
+  }
+  .check-btn:hover {
+    color: #0f2d55; border-color: #93c5fd; background: #eff6ff;
+    transform: scale(1.06); box-shadow: 0 2px 8px rgba(37, 99, 235, .18);
+  }
+  .check-btn.has-progress {
+    border-color: #86efac; background: #f0fdf4; color: #166534;
+  }
+  .check-btn.is-done {
+    border-color: #16a34a; background: #16a34a; color: #fff;
+  }
+  .check-btn .check-prog {
+    position: absolute; bottom: -5px; right: -5px; min-width: 16px; height: 16px;
+    padding: 0 3px; border-radius: 999px; background: #0f2d55; color: #fff;
+    font-size: 9px; font-weight: 800; line-height: 16px; font-variant-numeric: tabular-nums;
+  }
+  .check-btn.is-done .check-prog { background: #14532d; }
   tr.is-favorite { box-shadow: inset 3px 0 0 #f59e0b; }
   tr.is-favorite td.model a { color: #b45309; }
   .fav-toolbar-count {
@@ -504,6 +530,46 @@
   .cmp-table .car-head a { font-weight: 800; }
   .cmp-table .car-sub { color: #64748b; font-size: 12px; margin-top: 4px; }
   .cmp-hint { color: #64748b; font-size: 12px; margin: 0 0 10px; }
+  .checklist-modal { width: min(560px, 100%); }
+  .checklist-sub {
+    margin: 0 0 12px; color: #64748b; font-size: 13px; line-height: 1.45;
+  }
+  .checklist-sub a { font-weight: 700; }
+  .checklist-meta {
+    display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 14px;
+  }
+  .checklist-meta span {
+    font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 999px;
+    background: #f1f5f9; color: #334155; border: 1px solid #e2e8f0;
+  }
+  .checklist-section {
+    margin: 0 0 14px; padding: 12px 12px 6px;
+    border: 1px solid #e2e8f0; border-radius: 12px; background: #f8fafc;
+  }
+  .checklist-section h3 {
+    margin: 0 0 8px; font-size: 12px; letter-spacing: .04em; text-transform: uppercase;
+    color: #0f2d55; font-family: var(--display);
+  }
+  .checklist-item {
+    display: flex; gap: 10px; align-items: flex-start;
+    padding: 8px 4px; border-top: 1px solid #e2e8f0; font-size: 13px; color: #1e293b;
+    cursor: pointer;
+  }
+  .checklist-item:first-of-type { border-top: 0; }
+  .checklist-item input {
+    margin-top: 2px; width: 16px; height: 16px; accent-color: #166534; flex: 0 0 auto;
+  }
+  .checklist-item.is-checked span { color: #64748b; text-decoration: line-through; }
+  .checklist-foot {
+    display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between;
+    margin-top: 4px; padding-top: 10px; border-top: 1px solid #e2e8f0;
+  }
+  .checklist-foot .progress-label { font-size: 12px; font-weight: 700; color: #475569; }
+  .checklist-foot button {
+    border: 1px solid #cbd5e1; background: #fff; border-radius: 8px;
+    padding: 7px 12px; font: inherit; font-size: 12px; font-weight: 700; cursor: pointer;
+  }
+  .checklist-foot button:hover { background: #f1f5f9; }
   .toast {
     display: none; position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
     background: #0f2d55; color: #fff; padding: 10px 16px; border-radius: 999px;
@@ -648,6 +714,7 @@
         <thead>
           <tr>
             <th class="fav-col" title="Favorite">★</th>
+            <th class="check-col" title="Dealer visit checklist">☑</th>
             <th class="sel-col" title="Select for compare"></th>
             <th class="sortable" data-sort="rank" data-type="num"># <span class="arrow"></span></th>
             <th class="sortable" data-sort="label" data-type="text">Recommendation <span class="arrow"></span></th>
@@ -685,7 +752,7 @@
     <div class="swatch"><span class="dot" style="background:#9a3412"></span> OVER €28k = above criteria max (kept on list)</div>
     <div class="swatch"><span class="dot" style="background:#0e7490"></span> Users / awards = model-level review score + badges (not per VIN)</div>
     <div class="swatch"><span class="dot" style="background:#7f1d1d"></span> Dark red cell = breaks wishlist criteria (price≤28k / year / auto / kit)</div>
-    <div style="margin-top:8px">Table renders in chunks for speed (~80 rows, more on scroll). Use <strong>Must have</strong> kit filters for Blind / Camera / Sensors / Seat heat / 2–3-zone. Criteria ≤€28k hides over-budget rows. <strong>★</strong> favorites sync locally (+ API when serve is up).</div>
+    <div style="margin-top:8px">Table renders in chunks for speed (~80 rows, more on scroll). Use <strong>Must have</strong> kit filters for Blind / Camera / Sensors / Seat heat / 2–3-zone. Criteria ≤€28k hides over-budget rows. <strong>★</strong> favorites and <strong>☑</strong> dealer-visit checklists sync in this browser (+ favorites API when serve is up).</div>
   </div>
 </div>
 
@@ -699,6 +766,16 @@
       <p class="cmp-hint">Side-by-side of your selection (2–3 cars).</p>
       <table class="cmp-table" id="compareTable"></table>
     </div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="checklistModal" role="dialog" aria-modal="true" aria-labelledby="checkTitle">
+  <div class="modal checklist-modal">
+    <div class="modal-head">
+      <h2 id="checkTitle">Visit checklist</h2>
+      <button type="button" id="closeChecklist">Close</button>
+    </div>
+    <div class="modal-body" id="checklistBody"></div>
   </div>
 </div>
 
@@ -717,6 +794,7 @@
   const MAX_SEL = 3;
   const HIDDEN_KEY = 'shortlistHiddenIds';
   const FAV_KEY = 'shortlistFavoriteIds';
+  const CHECK_KEY = 'shortlistChecklists';
   const DEFAULT_API = 'http://127.0.0.1:8765';
 
   const table = document.getElementById('carTable');
@@ -744,6 +822,8 @@
   const selCount = document.getElementById('selCount');
   const modal = document.getElementById('compareModal');
   const compareTable = document.getElementById('compareTable');
+  const checklistModal = document.getElementById('checklistModal');
+  const checklistBody = document.getElementById('checklistBody');
   const toast = document.getElementById('toast');
   const multiSelects = [source, engine];
   const persistBanner = document.getElementById('persistBanner');
@@ -764,6 +844,7 @@
   let apiBase = null;
   let filterTimer = null;
   let compareToastTimer = null;
+  let activeChecklistId = null;
 
   const loadSet = (key) => {
     try { return new Set(JSON.parse(localStorage.getItem(key) || '[]').map(String)); }
@@ -772,6 +853,12 @@
   const saveSet = (key, set) => localStorage.setItem(key, JSON.stringify([...set]));
   let favorites = loadSet(FAV_KEY);
   let hidden = loadSet(HIDDEN_KEY);
+  const loadCheckMap = () => {
+    try { return JSON.parse(localStorage.getItem(CHECK_KEY) || '{}') || {}; }
+    catch (e) { return {}; }
+  };
+  const saveCheckMap = (map) => localStorage.setItem(CHECK_KEY, JSON.stringify(map));
+  let checkMap = loadCheckMap();
 
   const showToast = (msg) => {
     toast.textContent = msg;
@@ -787,6 +874,172 @@
 
   const updateFavCount = () => {
     if (favCountEl) favCountEl.textContent = '★ ' + favorites.size;
+  };
+
+  const isHybridLike = (c) => {
+    const blob = ((c.engine || '') + ' ' + (c.model || '') + ' ' + (c.label || '')).toLowerCase();
+    return /hev|hybrid|e-tech|e:hev|phev|plugin/.test(blob);
+  };
+  const isMildSuspect = (c) => {
+    const blob = ((c.engine || '') + ' ' + (c.model || '')).toLowerCase();
+    return /mild|tce\s*1[34]0|tce\s*160|mhev/.test(blob) && !/e-tech|full hybrid|vollhybrid/.test(blob);
+  };
+
+  const checklistSectionsFor = (c) => {
+    const sections = [];
+    const papers = [
+      { id: 'price', text: 'Confirm asking price matches the ad (and any discount) in writing' },
+      { id: 'history', text: 'Service history / Scheckheft / digital service record complete' },
+      { id: 'owners', text: 'Confirm previous owners + private vs company use' },
+      { id: 'accident', text: 'Accident-free confirmation (Unfallfrei) / damage history' },
+      { id: 'warranty', text: 'Warranty in writing (renew gold / Toyota Geprüft / brand used-car)' },
+      { id: 'vin', text: 'VIN matches Fahrzeugbrief / Zulassungsbescheinigung II' },
+      { id: 'fees', text: 'Ask transfer / prep / Zulassung fees before handshake' },
+    ];
+    sections.push({ title: 'Papers & deal', items: papers });
+
+    const claimed = [];
+    if (c.blind && !String(c.blind).toLowerCase().startsWith('no'))
+      claimed.push({ id: 'kit-blind', text: 'Verify blind-spot / Side Assist works (claimed: ' + c.blind + ')' });
+    if (c.camera && !String(c.camera).toLowerCase().startsWith('no'))
+      claimed.push({ id: 'kit-cam', text: 'Verify camera / 360 view (claimed: ' + c.camera + ')' });
+    if (c.sensors && !String(c.sensors).toLowerCase().startsWith('no'))
+      claimed.push({ id: 'kit-pdc', text: 'Verify park sensors front/rear (claimed: ' + c.sensors + ')' });
+    if (c.seat && !String(c.seat).toLowerCase().startsWith('no'))
+      claimed.push({ id: 'kit-shz', text: 'Verify seat heating (claimed: ' + c.seat + ')' });
+    if (c.klima)
+      claimed.push({ id: 'kit-klima', text: 'Verify klima zones / A/C cold + heat (claimed: ' + c.klima + ')' });
+    claimed.push({ id: 'kit-lane', text: 'Lane keep / lane assist behaves normally on test drive' });
+    claimed.push({ id: 'kit-acc', text: 'Adaptive cruise / limiter works if equipped' });
+    sections.push({ title: 'Kit to verify on this car', items: claimed });
+
+    const physical = [
+      { id: 'paint', text: 'Body/paint: panel gaps, stone chips, rust, underbody' },
+      { id: 'tires', text: 'Tire brand, tread, DOT age; spare or repair kit present' },
+      { id: 'interior', text: 'Interior wear, smells, moisture, Isofix anchors' },
+      { id: 'lights', text: 'No warning lights after start + short drive' },
+      { id: 'drive', text: 'Test drive: gearbox, brakes, steering, rattles, A/C' },
+      { id: 'keys', text: 'All keys / Keycard present; remote lock works' },
+    ];
+    sections.push({ title: 'Car condition', items: physical });
+
+    if (isHybridLike(c) || isMildSuspect(c)) {
+      const hev = [
+        { id: 'hev-type', text: isMildSuspect(c)
+          ? 'Confirm powertrain: this listing looks mild / TCe — demand E-TECH / full hybrid if that is the goal'
+          : 'Confirm full hybrid system (not mild hybrid) on the papers / screen' },
+        { id: 'hev-soh', text: 'Ask hybrid battery health / SOH printout or dealer statement' },
+        { id: 'hev-ready', text: 'READY / EV mode works; quiet electric crawl at low speed' },
+        { id: 'hev-warn', text: 'No hybrid / battery / inverter warning lights' },
+      ];
+      sections.push({ title: 'Hybrid checks', items: hev });
+    }
+
+    const brand = ((c.brand || '') + ' ' + (c.source || '') + ' ' + (c.model || '')).toLowerCase();
+    if (/renault|renew/.test(brand)) {
+      sections.push({
+        title: 'Renault / renew extras',
+        items: [
+          { id: 'ren-etech', text: 'Title/papers say E-TECH 145 (not 1.3 TCe 140 mild)' },
+          { id: 'ren-gold', text: 'renew gold / warranty start + what’s covered' },
+          { id: 'ren-soft', text: 'Infotainment / cameras / parking assist glitch-free' },
+        ],
+      });
+    }
+    if (/toyota/.test(brand)) {
+      sections.push({
+        title: 'Toyota extras',
+        items: [
+          { id: 'toy-relax', text: 'Toyota Geprüft + Relax / hybrid component cover explained' },
+          { id: 'toy-service', text: 'Service at Toyota partners; hybrid battery history' },
+        ],
+      });
+    }
+    return sections;
+  };
+
+  const checklistIdsFor = (c) => {
+    const ids = [];
+    checklistSectionsFor(c).forEach(sec => sec.items.forEach(it => ids.push(it.id)));
+    return ids;
+  };
+
+  const checklistProgress = (id) => {
+    const c = byId.get(String(id));
+    if (!c) return { done: 0, total: 0 };
+    const ids = checklistIdsFor(c);
+    const saved = checkMap[String(id)] || {};
+    const done = ids.filter(k => saved[k]).length;
+    return { done, total: ids.length };
+  };
+
+  const checkBtnHtml = (id) => {
+    const { done, total } = checklistProgress(id);
+    const cls = done >= total && total > 0 ? ' is-done' : (done > 0 ? ' has-progress' : '');
+    const prog = total ? '<span class="check-prog">' + done + '/' + total + '</span>' : '';
+    const title = total ? ('Visit checklist (' + done + '/' + total + ')') : 'Visit checklist';
+    return '<button type="button" class="check-btn' + cls + '" data-id="' + escAttr(id) +
+      '" title="' + escAttr(title) + '" aria-label="' + escAttr(title) + '">☑' + prog + '</button>';
+  };
+
+  const paintCheckBtn = (id) => {
+    const tr = tbody.querySelector('tr[data-id="' + CSS.escape(String(id)) + '"]');
+    if (!tr) return;
+    const cell = tr.querySelector('.check-cell');
+    if (cell) cell.innerHTML = checkBtnHtml(id);
+  };
+
+  const openChecklist = (id) => {
+    const c = byId.get(String(id));
+    if (!c) return;
+    activeChecklistId = String(id);
+    const saved = checkMap[activeChecklistId] || {};
+    const sections = checklistSectionsFor(c);
+    const { done, total } = checklistProgress(id);
+    let html = '<p class="checklist-sub"><strong>' + escHtml(c.model || 'Car') + '</strong>';
+    if (c.url) html += ' · <a href="' + escAttr(c.url) + '" target="_blank" rel="noopener">Open listing</a>';
+    html += '</p><div class="checklist-meta">';
+    if (c.priceText) html += '<span>' + escHtml(c.priceText) + '</span>';
+    if (c.ez) html += '<span>EZ ' + escHtml(c.ez) + '</span>';
+    if (c.miles) html += '<span>' + escHtml(c.miles) + '</span>';
+    if (c.engine) html += '<span>' + escHtml(c.engine) + '</span>';
+    if (c.source) html += '<span>' + escHtml(c.source) + '</span>';
+    html += '</div>';
+    sections.forEach(sec => {
+      html += '<div class="checklist-section"><h3>' + escHtml(sec.title) + '</h3>';
+      sec.items.forEach(it => {
+        const on = !!saved[it.id];
+        html += '<label class="checklist-item' + (on ? ' is-checked' : '') + '">' +
+          '<input type="checkbox" data-check-id="' + escAttr(it.id) + '"' + (on ? ' checked' : '') + '/>' +
+          '<span>' + escHtml(it.text) + '</span></label>';
+      });
+      html += '</div>';
+    });
+    html += '<div class="checklist-foot"><span class="progress-label" id="checkProgressLabel">' +
+      done + ' / ' + total + ' checked</span>' +
+      '<button type="button" id="resetChecklistBtn">Reset this car</button></div>';
+    checklistBody.innerHTML = html;
+    checklistModal.classList.add('open');
+    document.body.style.overflow = 'hidden';
+  };
+
+  const closeChecklist = () => {
+    checklistModal.classList.remove('open');
+    if (!modal.classList.contains('open')) document.body.style.overflow = '';
+    activeChecklistId = null;
+  };
+
+  const persistChecklistItem = (itemId, on) => {
+    if (!activeChecklistId) return;
+    if (!checkMap[activeChecklistId]) checkMap[activeChecklistId] = {};
+    if (on) checkMap[activeChecklistId][itemId] = true;
+    else delete checkMap[activeChecklistId][itemId];
+    if (!Object.keys(checkMap[activeChecklistId]).length) delete checkMap[activeChecklistId];
+    saveCheckMap(checkMap);
+    const { done, total } = checklistProgress(activeChecklistId);
+    const lab = document.getElementById('checkProgressLabel');
+    if (lab) lab.textContent = done + ' / ' + total + ' checked';
+    paintCheckBtn(activeChecklistId);
   };
 
   const msValues = (root) => Array.from(root.querySelectorAll('.ms-opt input:checked')).map(i => i.value);
@@ -899,6 +1152,7 @@
     return (
       '<tr class="' + c.tier + (on ? ' is-favorite' : '') + (sel ? ' is-selected' : '') + '" data-id="' + escAttr(id) + '" data-favorite="' + (on ? '1' : '0') + '">' +
       '<td class="fav-cell"><button type="button" class="fav-btn' + (on ? ' is-on' : '') + '" data-id="' + escAttr(id) + '" aria-pressed="' + (on ? 'true' : 'false') + '" title="' + favTitle + '" aria-label="' + favTitle + '"><span class="fav-icon" aria-hidden="true">★</span></button></td>' +
+      '<td class="check-cell">' + checkBtnHtml(id) + '</td>' +
       '<td class="sel-cell"><input type="checkbox" class="row-select" aria-label="Select for compare"' + (sel ? ' checked' : '') + '/></td>' +
       '<td class="idx">' + idx + '</td>' +
       '<td class="rec">' + c.recHtml + '</td>' +
@@ -920,7 +1174,7 @@
     let html = '';
     for (let i = 0; i < slice.length; i++) html += rowHtml(slice[i], i + 1);
     if (renderLimit < view.length) {
-      html += '<tr class="load-more-row"><td colspan="20"><button type="button" id="loadMoreBtn">Show more (' +
+      html += '<tr class="load-more-row"><td colspan="21"><button type="button" id="loadMoreBtn">Show more (' +
         (view.length - renderLimit) + ' remaining)</button></td></tr>';
     }
     tbody.innerHTML = html;
@@ -1076,11 +1330,36 @@
       toggleFavorite(fav.dataset.id);
       return;
     }
+    const check = e.target.closest('.check-btn');
+    if (check) {
+      e.preventDefault();
+      e.stopPropagation();
+      openChecklist(check.dataset.id);
+      return;
+    }
     if (e.target.closest('a')) return;
     if (e.target.closest('.sel-cell') || e.target.classList.contains('row-select')) return;
+    if (e.target.closest('.check-cell')) return;
     const row = e.target.closest('tr[data-id]');
     if (!row) return;
     toggleRow(row.dataset.id);
+  });
+
+  checklistBody.addEventListener('change', (e) => {
+    const input = e.target.closest('input[data-check-id]');
+    if (!input) return;
+    const label = input.closest('.checklist-item');
+    if (label) label.classList.toggle('is-checked', input.checked);
+    persistChecklistItem(input.dataset.checkId, input.checked);
+  });
+  checklistBody.addEventListener('click', (e) => {
+    if (e.target.id !== 'resetChecklistBtn') return;
+    if (!activeChecklistId) return;
+    delete checkMap[activeChecklistId];
+    saveCheckMap(checkMap);
+    paintCheckBtn(activeChecklistId);
+    openChecklist(activeChecklistId);
+    showToast('Checklist reset for this car');
   });
 
   tbody.addEventListener('change', (e) => {
@@ -1110,9 +1389,12 @@
   });
   document.getElementById('closeCompare').addEventListener('click', closeCompare);
   modal.addEventListener('click', (e) => { if (e.target === modal) closeCompare(); });
+  document.getElementById('closeChecklist').addEventListener('click', closeChecklist);
+  checklistModal.addEventListener('click', (e) => { if (e.target === checklistModal) closeChecklist(); });
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
       closeCompare();
+      closeChecklist();
       multiSelects.forEach(closeMs);
     }
   });
