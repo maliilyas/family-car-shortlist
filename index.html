@@ -368,7 +368,11 @@
     margin-left: auto; font-size: 13px; color: #334155; font-weight: 650;
     background: rgba(255,255,255,.72); border: 1px solid rgba(148,163,184,.35);
     border-radius: 999px; padding: 8px 12px; height: 42px;
-    display: inline-flex; align-items: center;
+    display: inline-flex; align-items: center; max-width: min(520px, 70vw);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .toolbar .search-hint {
+    font-weight: 600; color: #0f766e; margin-left: 2px;
   }
   .toolbar button.reset, .toolbar button.clear-sel {
     height: 42px; border: 1px solid #cbd5e1; background: #fff; border-radius: 12px; padding: 0 14px;
@@ -707,7 +711,7 @@
         <button type="button" class="clear-sel" id="clearSelection">Clear selection</button>
         <button type="button" class="compare-btn" id="compareBtn" disabled>Compare (0/3)</button>
         <div class="sel-count" id="selCount">Click rows or checkboxes to select</div>
-        <div class="count"><span id="visibleCount">0</span> / 2479 shown</div>
+        <div class="count"><span id="visibleCount">0</span> / 2479 shown <span id="searchHint" class="search-hint"></span></div>
       </div>
     </div>
     <div class="kit-filters" id="kitFilters">
@@ -848,6 +852,7 @@
   const favCountEl = document.getElementById('favCount');
   const askedCountEl = document.getElementById('askedCount');
   const visibleCount = document.getElementById('visibleCount');
+  const searchHint = document.getElementById('searchHint');
   const compareBtn = document.getElementById('compareBtn');
   const clearSelection = document.getElementById('clearSelection');
   const selCount = document.getElementById('selCount');
@@ -1451,6 +1456,23 @@
     }
     tbody.innerHTML = html;
     visibleCount.textContent = String(view.length);
+    if (searchHint) {
+      if (activeQuery && activeQuery.mode === 'or' && activeQuery.groups.length > 1) {
+        const bits = [];
+        for (const variants of activeQuery.groups) {
+          const label = variants.find(v => KNOWN_MODELS.some(m => compact(m) === compact(v))) || variants[0];
+          if (!label) continue;
+          let n = 0;
+          for (const c of view) {
+            if (variants.some(v => (c._sn || '').includes(v) || (c._sc || '').includes(compact(v)))) n++;
+          }
+          if (n) bits.push(label + ' ' + n);
+        }
+        searchHint.textContent = bits.length ? (' · ' + bits.join(' · ')) : '';
+      } else {
+        searchHint.textContent = '';
+      }
+    }
     syncSelectionUI();
   };
 
