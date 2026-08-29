@@ -1333,7 +1333,8 @@
     }
     if (maxKm.value !== '') {
       const mk = Number(maxKm.value);
-      if (c.km == null || c.km > mk) return false;
+      // Keep unknown mileage visible — only hide when we know it's over the cap.
+      if (c.km != null && c.km !== '' && Number(c.km) > mk) return false;
     }
     if (radiusKm && radiusKm.value !== '') {
       const rk = Number(radiusKm.value);
