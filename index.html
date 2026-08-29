@@ -645,7 +645,7 @@
       <div class="toolbar-grid">
         <div class="field">
           <span class="field-label">Search</span>
-          <input id="q" type="search" placeholder="tiguan, austral −taigo — commas OR, −model excludes" autocomplete="off" title="Comma / space = OR across models. Prefix − or - to exclude (e.g. -taigo, -arkana). Fuzzy spelling OK."/>
+          <input id="q" type="search" placeholder="tiguan, austral −taigo — OR; -model or !model excludes" autocomplete="off" title="Comma / space = OR across models. Prefix - or ! to exclude (e.g. -taigo or !tiguan). Fuzzy spelling OK."/>
         </div>
         <div class="ms field" id="source" data-placeholder="All brands">
           <span class="field-label">Brand</span>
@@ -782,7 +782,7 @@
     <div class="swatch"><span class="dot" style="background:#9a3412"></span> €28k+ = soft tag only (use Max price to hide)</div>
     <div class="swatch"><span class="dot" style="background:#0e7490"></span> Users / awards = model score + NCAP / IIHS line</div>
     <div class="swatch"><span class="dot" style="background:#7f1d1d"></span> Dark red cell = breaks year / auto / kit preference</div>
-    <div style="margin-top:8px">Table renders in chunks for speed. <strong>2023+ · Auto · ≤50k km</strong> is the hard criteria chip. Price is filtered with <strong>Max price</strong>. Default radius is <strong>200 km</strong> (cars without distance stay visible). Search: commas = OR (<code>tiguan, austral</code>); prefix <code>-</code> to exclude (<code>-taigo, -arkana</code>); fuzzy typos OK. <strong>★</strong> favorites and <strong>✉</strong> already-asked stick via localStorage + cookie. <strong>☑</strong> visit checklists stay in this browser.</div>
+    <div style="margin-top:8px">Table renders in chunks for speed. <strong>2023+ · Auto · ≤50k km</strong> is the hard criteria chip. Price is filtered with <strong>Max price</strong>. Default radius is <strong>200 km</strong> (cars without distance stay visible). Search: commas = OR (<code>tiguan, austral</code>); prefix <code>-</code> or <code>!</code> to exclude (<code>-taigo</code>, <code>!tiguan</code>); fuzzy typos OK. <strong>★</strong> favorites and <strong>✉</strong> already-asked stick via localStorage + cookie. <strong>☑</strong> visit checklists stay in this browser.</div>
   </div>
 </div>
 
@@ -1284,10 +1284,10 @@
     const raw = String(query || '').trim();
     if (!raw) { activeQuery = null; return; }
 
-    // Pull out -term / −term excludes anywhere (token-leading minus only).
+    // Pull out -term / !term excludes anywhere (token-leading minus or bang).
     const excludeRaw = [];
     const withoutExcl = raw
-      .replace(/(^|[,;|，、\s])[-−–]+\s*([A-Za-z0-9][A-Za-z0-9.+-]*)/g, (m, pre, term) => {
+      .replace(/(^|[,;|，、\s])(?:[-−–]+|!+)\s*([A-Za-z0-9][A-Za-z0-9.+-]*)/g, (m, pre, term) => {
         excludeRaw.push(term);
         return pre;
       })
