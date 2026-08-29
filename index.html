@@ -645,7 +645,7 @@
       <div class="toolbar-grid">
         <div class="field">
           <span class="field-label">Search</span>
-          <input id="q" type="search" placeholder="taigo, taiguan, austral — commas OR, typos OK" autocomplete="off" title="Comma / semicolon = OR across models. Fuzzy spelling OK (e.g. taiguan → Tiguan)."/>
+          <input id="q" type="search" placeholder="tiguan, austral −taigo — commas OR, −model excludes" autocomplete="off" title="Comma / space = OR across models. Prefix − or - to exclude (e.g. -taigo, -arkana). Fuzzy spelling OK."/>
         </div>
         <div class="ms field" id="source" data-placeholder="All brands">
           <span class="field-label">Brand</span>
@@ -782,7 +782,7 @@
     <div class="swatch"><span class="dot" style="background:#9a3412"></span> €28k+ = soft tag only (use Max price to hide)</div>
     <div class="swatch"><span class="dot" style="background:#0e7490"></span> Users / awards = model score + NCAP / IIHS line</div>
     <div class="swatch"><span class="dot" style="background:#7f1d1d"></span> Dark red cell = breaks year / auto / kit preference</div>
-    <div style="margin-top:8px">Table renders in chunks for speed. <strong>2023+ · Auto · ≤50k km</strong> is the hard criteria chip. Price is filtered with <strong>Max price</strong>. Default radius is <strong>200 km</strong> (cars without distance stay visible). Search: commas = OR across models (<code>taigo, taiguan, austral</code>), fuzzy typos OK. <strong>★</strong> favorites and <strong>✉</strong> already-asked stick via localStorage + cookie. <strong>☑</strong> visit checklists stay in this browser.</div>
+    <div style="margin-top:8px">Table renders in chunks for speed. <strong>2023+ · Auto · ≤50k km</strong> is the hard criteria chip. Price is filtered with <strong>Max price</strong>. Default radius is <strong>200 km</strong> (cars without distance stay visible). Search: commas = OR (<code>tiguan, austral</code>); prefix <code>-</code> to exclude (<code>-taigo, -arkana</code>); fuzzy typos OK. <strong>★</strong> favorites and <strong>✉</strong> already-asked stick via localStorage + cookie. <strong>☑</strong> visit checklists stay in this browser.</div>
   </div>
 </div>
 
@@ -1271,7 +1271,7 @@
     }
     return [...out];
   };
-  let activeQuery = null; // { mode: 'or'|'and', groups: string[][] }
+  let activeQuery = null; // { mode, groups, exclude }
   const looksLikeModel = (term) => {
     const vars = expandTerm(term);
     const knownC = KNOWN_MODELS.map(compact);
@@ -1283,27 +1283,47 @@
   const compileQuery = (query) => {
     const raw = String(query || '').trim();
     if (!raw) { activeQuery = null; return; }
+
+    // Pull out -term / −term excludes anywhere (token-leading minus only).
+    const excludeRaw = [];
+    const withoutExcl = raw
+      .replace(/(^|[,;|，、\s])[-−–]+\s*([A-Za-z0-9][A-Za-z0-9.+-]*)/g, (m, pre, term) => {
+        excludeRaw.push(term);
+        return pre;
+      })
+      .replace(/\s+/g, ' ')
+      .trim();
+
+    const exclude = excludeRaw.map(expandTerm).filter(v => v.length);
+
+    if (!withoutExcl) {
+      activeQuery = exclude.length ? { mode: 'or', groups: [], exclude } : null;
+      return;
+    }
+
     // Comma / semicolon / pipe / Chinese comma / " or " → OR across models
-    const orParts = raw.split(/[,;|，、]+|\s+or\s+/i).map(s => s.trim()).filter(Boolean);
+    const orParts = withoutExcl.split(/[,;|，、]+|\s+or\s+/i).map(s => s.trim()).filter(Boolean);
+    let mode = 'or';
+    let groups;
     if (orParts.length > 1) {
-      activeQuery = { mode: 'or', groups: orParts.map(expandTerm).filter(v => v.length) };
-      return;
+      groups = orParts.map(expandTerm).filter(v => v.length);
+    } else {
+      const tokens = normSearch(withoutExcl).split(' ').filter(t => t.length >= 2);
+      if (tokens.length <= 1) {
+        groups = [expandTerm(withoutExcl)];
+      } else if (tokens.every(looksLikeModel)) {
+        // Space-separated known models → OR
+        groups = tokens.map(expandTerm).filter(v => v.length);
+      } else {
+        // Phrase AND (e.g. "corolla cross")
+        mode = 'and';
+        groups = tokens.map(expandTerm).filter(v => v.length);
+      }
     }
-    const tokens = normSearch(raw).split(' ').filter(t => t.length >= 2);
-    if (tokens.length <= 1) {
-      activeQuery = { mode: 'or', groups: [expandTerm(raw)] };
-      return;
-    }
-    // Space-separated known models → OR ("taigo tiguan austral")
-    // Otherwise AND for phrases ("corolla cross")
-    const asModels = tokens.every(looksLikeModel);
-    activeQuery = {
-      mode: asModels ? 'or' : 'and',
-      groups: tokens.map(expandTerm).filter(v => v.length),
-    };
+    activeQuery = { mode, groups, exclude };
   };
   const carMatchesQuery = (c) => {
-    if (!activeQuery || !activeQuery.groups.length) return true;
+    if (!activeQuery) return true;
     const hayN = c._sn || '';
     const hayC = c._sc || '';
     const hit = (variants) => variants.some(v => {
@@ -1312,6 +1332,11 @@
       const vc = v.replace(/[.\s-]/g, '');
       return vc && hayC.includes(vc);
     });
+    // Excludes win first: -taigo / -arkana never shown
+    if (activeQuery.exclude && activeQuery.exclude.length) {
+      if (activeQuery.exclude.some(hit)) return false;
+    }
+    if (!activeQuery.groups || !activeQuery.groups.length) return true;
     return activeQuery.mode === 'and'
       ? activeQuery.groups.every(hit)
       : activeQuery.groups.some(hit);
@@ -1457,8 +1482,8 @@
     tbody.innerHTML = html;
     visibleCount.textContent = String(view.length);
     if (searchHint) {
-      if (activeQuery && activeQuery.mode === 'or' && activeQuery.groups.length > 1) {
-        const bits = [];
+      const bits = [];
+      if (activeQuery && activeQuery.mode === 'or' && activeQuery.groups && activeQuery.groups.length > 1) {
         for (const variants of activeQuery.groups) {
           const label = variants.find(v => KNOWN_MODELS.some(m => compact(m) === compact(v))) || variants[0];
           if (!label) continue;
@@ -1468,10 +1493,16 @@
           }
           if (n) bits.push(label + ' ' + n);
         }
-        searchHint.textContent = bits.length ? (' · ' + bits.join(' · ')) : '';
-      } else {
-        searchHint.textContent = '';
       }
+      if (activeQuery && activeQuery.exclude && activeQuery.exclude.length) {
+        const labels = [];
+        for (const variants of activeQuery.exclude) {
+          const label = variants.find(v => KNOWN_MODELS.some(m => compact(m) === compact(v))) || variants[0];
+          if (label) labels.push(label);
+        }
+        if (labels.length) bits.push('excl −' + labels.join(' −'));
+      }
+      searchHint.textContent = bits.length ? (' · ' + bits.join(' · ')) : '';
     }
     syncSelectionUI();
   };
