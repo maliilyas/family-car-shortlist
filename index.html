@@ -1296,21 +1296,22 @@
 
     const exclude = excludeRaw.map(expandTerm).filter(v => v.length);
 
-    if (!withoutExcl) {
+    const cleaned = withoutExcl.replace(/^[,;|，、\s]+|[,;|，、\s]+$/g, '').trim();
+    if (!cleaned) {
       activeQuery = exclude.length ? { mode: 'or', groups: [], exclude } : null;
       return;
     }
 
     // Comma / semicolon / pipe / Chinese comma / " or " → OR across models
-    const orParts = withoutExcl.split(/[,;|，、]+|\s+or\s+/i).map(s => s.trim()).filter(Boolean);
+    const orParts = cleaned.split(/[,;|，、]+|\s+or\s+/i).map(s => s.trim()).filter(Boolean);
     let mode = 'or';
     let groups;
     if (orParts.length > 1) {
       groups = orParts.map(expandTerm).filter(v => v.length);
     } else {
-      const tokens = normSearch(withoutExcl).split(' ').filter(t => t.length >= 2);
+      const tokens = normSearch(cleaned).split(' ').filter(t => t.length >= 2);
       if (tokens.length <= 1) {
-        groups = [expandTerm(withoutExcl)];
+        groups = [expandTerm(cleaned)].filter(v => v.length);
       } else if (tokens.every(looksLikeModel)) {
         // Space-separated known models → OR
         groups = tokens.map(expandTerm).filter(v => v.length);
