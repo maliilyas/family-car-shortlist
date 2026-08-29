@@ -1267,6 +1267,14 @@
     return [...out];
   };
   let activeQuery = null; // { mode: 'or'|'and', groups: string[][] }
+  const looksLikeModel = (term) => {
+    const vars = expandTerm(term);
+    const knownC = KNOWN_MODELS.map(compact);
+    return vars.some(v => {
+      const vc = compact(v);
+      return knownC.includes(vc) || SEARCH_ALIASES[normSearch(term)] || SEARCH_ALIASES[vc];
+    });
+  };
   const compileQuery = (query) => {
     const raw = String(query || '').trim();
     if (!raw) { activeQuery = null; return; }
@@ -1281,8 +1289,13 @@
       activeQuery = { mode: 'or', groups: [expandTerm(raw)] };
       return;
     }
-    // Multi-word without commas → AND (e.g. "corolla cross")
-    activeQuery = { mode: 'and', groups: tokens.map(expandTerm).filter(v => v.length) };
+    // Space-separated known models → OR ("taigo tiguan austral")
+    // Otherwise AND for phrases ("corolla cross")
+    const asModels = tokens.every(looksLikeModel);
+    activeQuery = {
+      mode: asModels ? 'or' : 'and',
+      groups: tokens.map(expandTerm).filter(v => v.length),
+    };
   };
   const carMatchesQuery = (c) => {
     if (!activeQuery || !activeQuery.groups.length) return true;
